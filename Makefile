@@ -14,7 +14,7 @@ TEST_DIR = testing
 CPPFLAGS += -isystem $(GTEST_DIR)/include
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g -Wall -Wextra -pthread -std=c++11
+CXXFLAGS += -g -Wall -Wextra -pthread -std=c++11 -O3
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
@@ -28,7 +28,7 @@ GTEST_HEADERS = $(GTEST_DIR)/include/gtest/*.h \
 
 # House-keeping build targets.
 
-all : $(TESTS)
+all : $(TESTS) gen
 
 clean :
 	rm -f gtest.a gtest_main.a *.o bin/*
@@ -70,5 +70,5 @@ externalSort_unittest : externalSort.o externalSort_unittest.o gtest.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -lpthread $^ -o $(OUTPUT_DIR)/$@
 
 # build the random number generator
-gen: gen/gen.cpp
-	g++ -g -O2 -Werror gen.cpp -o $(OUTPUT_DIR)/$@
+gen: gen/gen.cpp Makefile
+	g++ -g -O2 -Werror gen/gen.cpp -o $(OUTPUT_DIR)/$@

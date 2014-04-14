@@ -134,5 +134,5 @@ void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
     }
 	//flush the output buffer
     write(fdOutput, output_run.data(), output_run.size() * sizeof(uint64_t));
-    std::cout << "outputted " << o << " numbers." << std::endl;
+    std::cout << "output " << o << " numbers." << std::endl;
 }

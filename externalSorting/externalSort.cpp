@@ -34,19 +34,21 @@ void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
     uint64_t number; //buffer for one number
     uint64_t total_numbers_read = 0;
     std::vector<uint64_t> memBlock; //only use multiples of 8Byte for memory, even if we got slightly more available
-
+    std::vector<uint64_t> elementsInRun;
     int output, error;
     std::vector<int> temp_files;
     std::string tempname = "temp";
-	std::cout << "run creation phase" << std::endl;
+    std::cout << "run creation phase" << std::endl;
     for(uint64_t k = 0; k < number_of_runs; k++) {
         #ifdef DEBUG
         std::cout << "sorting run #" << k << std::endl;
         #endif
-        for(uint64_t j = 0; j < memSize/sizeof(uint64_t) && total_numbers_read < size; j++, total_numbers_read++) {
-            read(fdInput, &number, sizeof(uint64_t));
-            memBlock.push_back(number);
-        }
+
+        uint64_t elementsToRead = std::min(memSize/sizeof(uint64_t), (size - total_numbers_read));
+        memBlock.resize(elementsToRead);
+        total_numbers_read += elementsToRead;
+        read(fdInput, &memBlock[0], elementsToRead * sizeof(uint64_t));
+
         std::sort(memBlock.begin(), memBlock.end());
         if((output = open((tempname + std::to_string(k)).c_str(),
             O_CREAT|O_TRUNC|O_WRONLY, S_IRUSR|S_IWUSR)) < 0)
@@ -59,6 +61,7 @@ void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
         } else {
             temp_files.push_back(output);
         }
+        elementsInRun.push_back(memBlock.size());
         //write the whole run out in one operation
         write(temp_files[k], memBlock.data(), memBlock.size() * sizeof(uint64_t));
         close(temp_files[k]);
@@ -67,13 +70,13 @@ void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
             std::cout << num << std::endl;
         }
         #endif
-		//clear memBlock, since we dont want to use more memory than allowed
+        //clear memBlock, since we dont want to use more memory than allowed
         memBlock.clear();
     }
     //really deallocate memBlock and free the memory, see http://www.cplusplus.com/reference/vector/vector/clear/
     std::vector<uint64_t>().swap(memBlock);
     
-	std::cout << "merge phase" << std::endl;
+    std::cout << "merge phase" << std::endl;
     std::vector<std::vector<uint64_t>> input_runs;
     std::vector<uint64_t> output_run;
     //open input runs and fill chunks
@@ -81,10 +84,10 @@ void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
         temp_files[k] = open((tempname + std::to_string(k)).c_str(), O_RDONLY);
         uint64_t i = 0;
         std::vector<uint64_t> run;
-        while(i++ < chunkSize && read(temp_files[k], &number, sizeof(uint64_t)) > 0)
-        { //the order of the two conditions is important, otherwise we could read a number and drop it
-            run.push_back(number);
-        }
+        uint64_t elementsToReadIntoChunk = std::min(chunkSize, elementsInRun[k]);
+        run.resize(elementsToReadIntoChunk);
+        elementsInRun[k] -= elementsToReadIntoChunk;
+        read(temp_files[k], &run[0], elementsToReadIntoChunk * sizeof(uint64_t));
         input_runs.push_back(run);
     }
     //build prio queue over all runs
@@ -115,9 +118,11 @@ void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
             uint64_t i = 0;
             input_runs[elem.runNumber].clear(); //first empty the run
             //then read up to chunkSize elements into it
-            while(i++ < chunkSize && read(temp_files[elem.runNumber], &number, sizeof(uint64_t)) > 0) {
-                input_runs[elem.runNumber].push_back(number);
-            }
+
+            uint64_t elementsToReadIntoChunk = std::min(chunkSize, elementsInRun[elem.runNumber]);
+            input_runs[elem.runNumber].resize(elementsToReadIntoChunk);
+            elementsInRun[elem.runNumber] -= elementsToReadIntoChunk;
+            read(temp_files[elem.runNumber], &input_runs[elem.runNumber][0], elementsToReadIntoChunk * sizeof(uint64_t));
             //then reset the iterator to the beginning
             elem.ptr = input_runs[elem.runNumber].begin(); 
         }
@@ -132,7 +137,7 @@ void externalSort(int fdInput, uint64_t size, int fdOutput, uint64_t memSize) {
             remove((tempname + std::to_string(elem.runNumber)).c_str());
         }
     }
-	//flush the output buffer
+    //flush the output buffer
     write(fdOutput, output_run.data(), output_run.size() * sizeof(uint64_t));
     std::cout << "output " << o << " numbers." << std::endl;
 }

@@ -36,7 +36,7 @@ BufferFrame& BufferManager::fixPage(uint64_t pageId, bool exclusive) {
             }
         }
 
-        uint64_t segmentId = pageId >> 16;
+        uint64_t segmentId = pageId >> bitsForSegment;
         int fd;
         if(fdForSegment.count(segmentId) == 0) {
             //segment has not been opened before

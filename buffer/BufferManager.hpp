@@ -2,6 +2,7 @@
 #define H_BUFFERMANAGER
 
 #include "BufferFrame.hpp"
+#include "bufferValues.hpp"
 #include <cstdlib>
 #include <cstdint>
 #include <unordered_map>

@@ -5,20 +5,19 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#define PAGESIZE 4096
 
 using namespace std;
 BufferFrame::BufferFrame(uint64_t id, int fd)
     :
     pageId(id),
+    in_lru_list(false),
+    readerCount(0),
     state(State::clean),
     data(NULL),
-    fd(fd),
-    in_lru_list(false),
-    readerCount(0)
+    fd(fd)
 {
     pthread_rwlock_init(&latch, nullptr);
-    pageOffset = pageId & 0xffff; // 16 bit in a file are for the page offset
+    pageOffset = pageId & bitMaskForPageOffset; // 16 bit in a file are for the page offset
 };
 void* BufferFrame::getData() {
     //cout << "g " << reinterpret_cast<unsigned*>(data)[0] << " ";
@@ -67,9 +66,12 @@ unsigned BufferFrame::getReaderCount() {
 BufferFrame::~BufferFrame() {
     //cout << "replacing frame for page " << pageId << endl;
     if(state == State::dirty) {
+
         //cout << "writing back " << reinterpret_cast<unsigned*>(data)[0] << endl;
         posix_fallocate(fd, pageOffset * PAGESIZE, PAGESIZE);
-        pwrite(fd, data, PAGESIZE, pageOffset * PAGESIZE);
+        if(pwrite(fd, data, PAGESIZE, pageOffset * PAGESIZE) < 0) {
+            cerr << "error while writing out buffer frame" << endl;
+        }
     }
     free(data);
     pthread_rwlock_destroy(&latch);

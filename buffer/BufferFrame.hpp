@@ -1,10 +1,11 @@
-#ifndef H_BUFFERFRAME
-#define H_BUFFERFRAME
+#ifndef BUFFERFRAME_HPP
+#define BUFFERFRAME_HPP
 
 #include <cstdint>
 #include <mutex>
 #include <list>
 #include "pthread.h"
+#include "bufferValues.hpp"
 
 //Frame for the buffer manager
 class BufferFrame{
@@ -26,10 +27,10 @@ class BufferFrame{
     private:
         pthread_rwlock_t latch;
         uint64_t lsn;
+        uint64_t pageOffset;
+        unsigned readerCount;
         State state;
         void* data;
         int fd;
-        uint64_t pageOffset;
-        unsigned readerCount;
 };
 #endif

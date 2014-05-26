@@ -62,7 +62,7 @@ template<typename K, typename Comp>
 void BTree<K, Comp>::insertKeyTidInLeaf(K key, TID tid, BTreeLeafNode* node) {
 	uint64_t correctSlot = findKeyInNode(key, node);
 	assert(node->count >= correctSlot);
-	memmove(&node->entry[correctSlot], &node->entry[correctSlot+1],node->count-correctSlot);
+	memmove(&node->entry[correctSlot+1], &node->entry[correctSlot],(node->count-correctSlot)*sizeof(BTreeKeyTIDPair));
 	node->entry[correctSlot] = {key, tid};
 	node->count++;
 };
@@ -177,7 +177,7 @@ void BTree<K, Comp>::insertKeyInInnerNode(K key, PID leftPid, PID rightPid, BTre
 	if(node->count == correctSlot) {
 		node->upper = rightPid;
 	}
-	memmove(&node->entry[correctSlot], &node->entry[correctSlot+1],node->count-correctSlot);
+	memmove(&node->entry[correctSlot+1], &node->entry[correctSlot],(node->count-correctSlot)*sizeof(BTreeKeyPIDPair));
 	node->entry[correctSlot] = {key, leftPid};
 	node->count++;
 
@@ -202,8 +202,11 @@ bool BTree<K, Comp>::lookup (K key, TID& tid) {
 	}
 	BTreeLeafNode* leaf = (BTreeLeafNode*) currentNode;
 	uint64_t correctSlot = findKeyInNode(key, leaf);
-	
-	if(leaf->entry[correctSlot].key == key) {
+	if(correctSlot == leaf->count) {
+		//std::cout << "looking up out of range" << std::endl;
+	}
+	if(correctSlot < leaf->count && leaf->entry[correctSlot].key == key) { //finKeyInNode can return first free slot as well
+		
 		tid = leaf->entry[correctSlot].tid;
 		result = true;
 	}
@@ -211,5 +214,38 @@ bool BTree<K, Comp>::lookup (K key, TID& tid) {
 		bufferManager.unfixPage(*bf_par, false);
 	}
 	bufferManager.unfixPage(*bf_cur, false);
+	return result;
+};
+template<typename K, typename Comp>
+bool BTree<K, Comp>::erase(K key) {
+	bool result = false;
+	BufferFrame* bf_cur = &bufferManager.fixPage(rootNodePageId, true);
+	BufferFrame* bf_par = NULL;
+	BTreeInnerNode* currentNode = (BTreeInnerNode*) bf_cur->getData();
+	BTreeInnerNode* parentNode = NULL;
+	while(!isLeaf(currentNode)) {
+		if(parentNode != NULL) {
+			bufferManager.unfixPage(*bf_par, false);
+		}
+		bf_par = bf_cur;
+		parentNode = currentNode;
+		PID childPID = getChildNodePIDForKey(key, currentNode);
+		bf_cur = &bufferManager.fixPage(childPID, true);
+		currentNode = (BTreeInnerNode*) bf_cur->getData();
+	}
+	BTreeLeafNode* leaf = (BTreeLeafNode*) currentNode;
+	uint64_t correctSlot = findKeyInNode(key, leaf);
+	
+	if(correctSlot < leaf->count && leaf->entry[correctSlot].key == key) {
+		leaf->count--;
+		memmove(&leaf->entry[correctSlot], &leaf->entry[correctSlot+1],(leaf->count-correctSlot)*sizeof(BTreeKeyTIDPair));
+		assert(leaf->count >=0);
+		mSize--;
+		result = true;
+	}
+	if(bf_par != NULL) {
+		bufferManager.unfixPage(*bf_par, false);
+	}
+	bufferManager.unfixPage(*bf_cur, true);
 	return result;
 };

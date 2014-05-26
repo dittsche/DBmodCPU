@@ -4,6 +4,8 @@
 #include "../dbms/DBMS.hpp"
 
 #include <iostream>
+#include <atomic>
+
 template<
 	typename K,
 	typename Comparator
@@ -47,7 +49,7 @@ private:
 
 	BufferManager& bufferManager;
 	uint64_t segmentId;
-	uint64_t mSize;
+	std::atomic<uint64_t> mSize;
 	uint64_t maxPage;
 	PID rootNodePageId;
 	Comparator smaller;
@@ -93,12 +95,9 @@ public:
 	BTree(BufferManager& bm, uint64_t segmentId);
 	void initialize();
 	bool insert(K key, TID tid);
-	bool erase (K key) {
-		return true;
-	};
+	bool erase (K key);
 	bool lookup (K key, TID& tid);
 	size_t size() {
-		std::cout << "size() = " << mSize << std::endl;
 		return mSize;
 	};
 };

@@ -1,7 +1,7 @@
 # Where to put the binary files
 OUTPUT_DIR = bin
 
-CXX = clang++
+CXX = g++
 # Where to find the test cases
 TEST_DIR = testing
 
@@ -10,7 +10,7 @@ CXXFLAGS += -g -Wall -Wextra -pthread -std=c++11
 
 OBJ = BufferFrame.o BufferManager.o Schema.o Parser.o SchemaSegment.o SPSegment.o Record.o 
 
-all: bufferManagerTest schemaSegmentTest slottedTest BTreeTest
+all: bufferManagerTest schemaSegmentTest slottedTest BTreeTest OperatorTest
 
 clean:
 	rm *.o bin/* data/*
@@ -53,3 +53,6 @@ slottedTest: slottedTest.o $(OBJ)
 
 BTreeTest: bTree/BTree.hpp testing/BTreeTest.cpp
 	$(CXX) $(CXXFLAGS) -lpthread testing/BTreeTest.cpp $(OBJ) -o $(OUTPUT_DIR)/$@
+
+OperatorTest: testing/OperatorTest.cpp
+	$(CXX) $(CXXFLAGS) -lpthread testing/OperatorTest.cpp $(OBJ) -o $(OUTPUT_DIR)/$@

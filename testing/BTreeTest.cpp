@@ -114,9 +114,9 @@ int main(int argc, char* argv[]) {
    test<uint64_t, MyCustomUInt64Cmp>(n);
 
    // Test index with 20 character strings
-   //test<Char<20>, MyCustomCharCmp<20>>(n);
+   test<Char<20>, MyCustomCharCmp<20>>(n);
 
    // Test index with compound key
-  // test<IntPair, MyCustomIntPairCmp>(n);
+   test<IntPair, MyCustomIntPairCmp>(n);
    return 0;
 }

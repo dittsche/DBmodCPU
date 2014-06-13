@@ -205,7 +205,7 @@ bool BTree<K, Comp>::lookup (K key, TID& tid) {
 	if(correctSlot == leaf->count) {
 		//std::cout << "looking up out of range" << std::endl;
 	}
-	if(correctSlot < leaf->count && leaf->entry[correctSlot].key == key) { //finKeyInNode can return first free slot as well
+	if(correctSlot < leaf->count && !smaller(key, leaf->entry[correctSlot].key) && !smaller(leaf->entry[correctSlot].key, key)) { //finKeyInNode can return first free slot as well
 		
 		tid = leaf->entry[correctSlot].tid;
 		result = true;
@@ -236,7 +236,7 @@ bool BTree<K, Comp>::erase(K key) {
 	BTreeLeafNode* leaf = (BTreeLeafNode*) currentNode;
 	uint64_t correctSlot = findKeyInNode(key, leaf);
 	
-	if(correctSlot < leaf->count && leaf->entry[correctSlot].key == key) {
+	if(correctSlot < leaf->count && !smaller(key, leaf->entry[correctSlot].key) && !smaller(leaf->entry[correctSlot].key, key)) {
 		leaf->count--;
 		memmove(&leaf->entry[correctSlot], &leaf->entry[correctSlot+1],(leaf->count-correctSlot)*sizeof(BTreeKeyTIDPair));
 		assert(leaf->count >=0);

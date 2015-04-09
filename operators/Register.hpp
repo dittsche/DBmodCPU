@@ -31,7 +31,7 @@ public:
 	State getState() {
 		return state;
 	}
-	int getInteger(){
+	int getInteger() const {
 		return integerValue;
 	};
 	void setInteger(const int val) {
@@ -42,11 +42,11 @@ public:
 		stringValue = s;
 		state = State::String;
 	}
-	std::string getString() {
+	std::string getString() const {
 		return stringValue;
 	};
 
-	size_t hash() {
+	size_t hash() const {
 		std::hash<int> int_hash;
 		std::hash<std::string> string_hash;
 		switch(state) {
@@ -59,7 +59,7 @@ public:
 		}
 	};
 
-	bool operator==(Register rhs) {
+	bool operator==(Register rhs) const {
 		if(this->state != rhs.state) return false;
 
 		switch(this->state) {
@@ -98,6 +98,17 @@ public:
 	};
 };
 
+namespace std {
+
+  template <>
+  struct hash<Register>
+  {
+    std::size_t operator()(const Register& k) const
+    {
+      return k.hash();
+    }
+  };
+}
 
 std::ostream& operator<<(std::ostream& lhs, Register& rhs) {
 	switch(rhs.getState()) {
